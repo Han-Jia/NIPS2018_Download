@@ -80,8 +80,8 @@ for p in tqdm(zip(paper_list, range(num_download))):
     
     # try 3 times
     success_flag = False
-    for _ in range(3):
-        error_flag = False
+    error_flag = False
+    for d_iter in range(3):
         try:
             abs_content = urlopen('http://papers.nips.cc'+url2, timeout=20).read()
             soup_temp = BeautifulSoup(abs_content, 'html.parser')
@@ -121,9 +121,10 @@ for p in tqdm(zip(paper_list, range(num_download))):
                         break                
                 supp_succ_download = True
                 
+            time.sleep(2)
             if error_flag:
                 # if it is error last time download, wait 2s here
-                time.sleep(2)
+                time.sleep(2 * (d_iter + 1))
             
             if not no_supp and supp_succ_download:    
                 # if zip file, unzip and extrac pdf file
