@@ -8,7 +8,7 @@ import zipfile
 import os
 from tqdm import tqdm
 import wget
-import base64
+import shutil
 
 init_url = 'http://papers.nips.cc/book/advances-in-neural-information-processing-systems-31-2018'
 # create current dict
@@ -36,8 +36,13 @@ if not os.path.exists(temp_zip_dir):
     os.mkdir(temp_zip_dir)  
 else:
     # remove all files
-    for e in os.listdir(temp_zip_dir):
-        os.remove(os.path.join(temp_zip_dir, e))
+    for unzip_file in os.listdir(temp_zip_dir):
+        if os.path.isfile(os.path.join(temp_zip_dir, unzip_file)):
+            os.remove(os.path.join(temp_zip_dir, unzip_file))
+        if os.path.isdir(os.path.join(temp_zip_dir, unzip_file)):
+            shutil.rmtree(os.path.join(temp_zip_dir, unzip_file))
+        else:
+            print('Cannot Remove - ' + os.path.join(temp_zip_dir, unzip_file))  
         
 if os.path.exists('main.pdf'):
     os.remove('main.pdf')
@@ -108,19 +113,31 @@ for p in tqdm(zip(paper_list, range(num_download))):
                     zip_ref.extractall(temp_zip_dir)
                     zip_ref.close()    
                     
-                    # find if there is a pdf file
-                    supp_pdf_path = None
-                    for unzip_file in os.listdir(temp_zip_dir):
-                        # for simplicity, we assume there is only one pdf file
-                        if unzip_file.endswith('.pdf'):
-                            # move the supp pdf file to the parent folder
-                            os.rename(os.path.join(temp_zip_dir, unzip_file), './supp.pdf')
-                            supp_pdf_path = './supp.pdf'
-                            break
+                    # find if there is a pdf file (by listing all files in the dir)
+                    supp_pdf_list = [os.path.join(dp, f) for dp, dn, filenames in os.walk(temp_zip_dir) for f in filenames if f.endswith('pdf')]
+                    # rename the first pdf file
+                    if len(supp_pdf_list) == 0:
+                        supp_pdf_path = None
+                    else:
+                        # by default, we only deal with the first pdf
+                        os.rename(supp_pdf_list[0], './supp.pdf')
+                        supp_pdf_path = './supp.pdf'
                         
-                    # empty the temp_folder
+                    # empty the temp_folder (both the dirs and files)
                     for unzip_file in os.listdir(temp_zip_dir):
-                        os.remove(os.path.join(temp_zip_dir, unzip_file))
+                        if os.path.isfile(os.path.join(temp_zip_dir, unzip_file)):
+                            os.remove(os.path.join(temp_zip_dir, unzip_file))
+                        if os.path.isdir(os.path.join(temp_zip_dir, unzip_file)):
+                            shutil.rmtree(os.path.join(temp_zip_dir, unzip_file))
+                        else:
+                            print('Cannot Remove - ' + os.path.join(temp_zip_dir, unzip_file))
+                    
+                    if supp_pdf_path is None:
+                        if os.path.exists('supp.zip'):
+                            os.remove('supp.zip')                              
+                        os.rename('./main.pdf', title + '.pdf')
+                        success_flag = True
+                        break
                             
                 elif supp_type.lower() == 'pdf':
                     supp_pdf_path = 'supp.' + supp_type
@@ -149,6 +166,12 @@ for p in tqdm(zip(paper_list, range(num_download))):
             else:
                 # download supp error
                 time.sleep(20)
+                if os.path.exists('main.pdf'):
+                    os.remove('main.pdf')   
+                if os.path.exists(supp_pdf_path):
+                    os.remove(supp_pdf_path)
+                if os.path.exists('supp.zip'):
+                    os.remove('supp.zip')                
                 continue
             
             success_flag = True

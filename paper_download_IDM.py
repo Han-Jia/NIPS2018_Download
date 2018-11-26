@@ -9,7 +9,6 @@ import os
 import shutil
 from tqdm import tqdm
 import subprocess
-import glob
 
 # use IDM to download everything
 idm_path = '''"C:\Program Files (x86)\Internet Download Manager\IDMan.exe"''' # should replace by the local IDM path
@@ -151,7 +150,14 @@ for p in tqdm(zip(paper_list, range(num_download))):
                             shutil.rmtree(os.path.join(temp_zip_dir, unzip_file))
                         else:
                             print('Cannot Remove - ' + os.path.join(temp_zip_dir, unzip_file))
-                            
+                    
+                    if supp_pdf_path is None:
+                        if os.path.exists('supp.zip'):
+                            os.remove('supp.zip')                              
+                        os.rename('./main.pdf', title + '.pdf')
+                        success_flag = True
+                        break
+                    
                 elif supp_type.lower() == 'pdf':
                     supp_pdf_path = 'supp.' + supp_type
                     
